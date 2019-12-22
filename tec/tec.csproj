@@ -89,6 +89,9 @@
     <None Include="rand.csv">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="randd.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="real.xlsx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

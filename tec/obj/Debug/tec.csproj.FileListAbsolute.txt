@@ -17,3 +17,4 @@ C:\Projects\tec\tec\bin\Debug\ExcelDataReader.DataSet.pdb
 C:\Projects\tec\tec\bin\Debug\ExcelDataReader.DataSet.xml
 C:\Projects\tec\tec\bin\Debug\real.xlsx
 C:\Projects\tec\tec\bin\Debug\rand.csv
+C:\Projects\tec\tec\bin\Debug\randd.csv
