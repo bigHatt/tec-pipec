@@ -78,6 +78,8 @@ namespace tec
                     result.Tables[0].Columns[1].ColumnName = "zola";
                     result.Tables[0].Columns[2].ColumnName = "water";
                     result.Tables[0].Columns[3].ColumnName = "price";
+                    result.Tables[0].Columns[4].ColumnName = "heat";
+                    result.Tables[0].Columns[5].ColumnName = "sera";
                     result.Tables[0].Columns.RemoveAt(4);
                     return result;
                 }
@@ -90,7 +92,6 @@ namespace tec
             {
                 using (var reader = ExcelReaderFactory.CreateCsvReader(stream))
                 {
-                    string[] columnsName = new string[] { "m", "y", "t", "d" };
                     var result = reader.AsDataSet();
                     result.Tables[0].TableName = "randData";
                     result.Tables[0].Rows.RemoveAt(0);
@@ -99,6 +100,8 @@ namespace tec
                     result.Tables[0].Columns[2].ColumnName = "water";
                     result.Tables[0].Columns[1].ColumnName = "zola";
                     result.Tables[0].Columns[3].ColumnName = "price";
+                    result.Tables[0].Columns[4].ColumnName = "heat";
+                    result.Tables[0].Columns[5].ColumnName = "sera";
                     return result;
                 }
             }
@@ -106,7 +109,7 @@ namespace tec
 
         public double[] calc()
         {
-            double[] res = new double[3]; // [zola, water, price]
+            double[] res = new double[5]; // [zola, water, price, heat, sera]
             foreach (var row in randList)
             {
                 // calc func
@@ -127,7 +130,9 @@ namespace tec
                 double diffZola = Math.Pow(rand[0] - (double)real[1], 2);
                 double diffWater = Math.Pow(rand[1] - (double)real[2], 2);
                 double diffPrice = Math.Pow(rand[2] - (double)real[3], 2);
-                var minn = Math.Sqrt(diffZola + diffWater + diffPrice);
+                double diffHeat = Math.Pow(rand[3] - (double)real[4], 2);
+                double diffSera = Math.Pow(rand[4] - (double)real[5], 2);
+                var minn = Math.Sqrt(diffZola + diffWater + diffPrice + diffHeat + diffSera);
                 if (minn < min)
                 {
                     min = minn;
