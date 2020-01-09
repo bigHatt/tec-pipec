@@ -12,6 +12,18 @@ using System.Windows.Forms;
 
 namespace tec
 {
+    public struct CalcResult
+    {
+        public CalcResult(double Wp, double Ap)
+        {
+            this.Wp = Wp;
+            this.Ap = Ap;
+        }
+
+        public double Wp;
+        public double Ap;
+    }
+
     public partial class Form1 : Form
     {
         public string realData = "real.xlsx";
@@ -31,7 +43,7 @@ namespace tec
             dataGridView1.AutoGenerateColumns = true;
             dataGridView2.AutoGenerateColumns = true;
         }
-        
+
         public void fillData()
         {
             var raelData = loadRealData();
@@ -107,32 +119,127 @@ namespace tec
             }
         }
 
-        public double[] calc()
+
+
+        //nu - КПД, Q - удельная теплота сгорания
+        //Sr - содержание серы
+        //Wp_Ap_Sum - ограничение на сумму влажности и зольности
+        public CalcResult calc_formula_1(double nu, double Q, double Sr, double Wp_Ap_Sum)
         {
-            double[] res = new double[5]; // [zola, water, price, heat, sera]
-            foreach (var row in randList)
-            {
-                // calc func
-            }
+            double b = Math.Pow(10, 14) / 3.52 / Sr;
+            b *= nu;
+            b *= Q;
+
+            double Ap = (2168 + 10 * b) / 25.2;
+            double Wp = Wp_Ap_Sum - Ap;
+
+            CalcResult res;
+            res.Wp = Wp;
+            res.Ap = Ap;
 
             return res;
+        }
+
+        public CalcResult calc_formula_2(double nu, double Q, double Sr, double c, double Wp_Ap_Sum)
+        {
+            double b = Math.Pow(10, 14) / 3.52 / Sr;
+            b *= nu;
+            b *= Q;
+
+            double Ap = -5 * (10 * b * c + 8143 * b + 6400) / (785 * b - 8064);
+            double Wp = (50 * b * c + 119215 * b - 1260 * c - 1878918) / (785 * b - 8064);
+
+            CalcResult res;
+            res.Wp = Wp;
+            res.Ap = Ap;
+
+            return res;
+        }
+
+        double aConst(double N, double t, double k, double Q, double P0)
+        {
+            return N * t * k * P0 / /*Math.Pow(10, 6) /*/ Q;
+        }
+
+        double dfdWp(double N, double t, double k, double Q, double P0, double Wp, double Ap)
+        {
+            return aConst(N, t, k, Q, P0) * (25.2 * Ap - 2420) / Math.Pow((100 - Ap - Wp), 2);
+        }
+
+        double dfdAp(double N, double t, double k, double Q, double P0, double Wp, double Ap)
+        {
+            return aConst(N, t, k, Q, P0) * (100 - 25.2 * Wp) / Math.Pow((100 - Ap - Wp), 2);
+        }
+
+        double f(double N, double t, double k, double Q, double P0, double Wp, double Ap)
+        {
+            return aConst(N, t, k, Q, P0) * (100 - 25.2 * Wp) / (100 - Ap - Wp);
+        }
+
+        public CalcResult fast_Gradient(double N, double t, double k, double Q, double P0, double h)
+        {
+            double eps = 0.01;
+
+            double x = 0.7;
+            double y = 0.1;
+
+            int counter = 0;
+
+            double G, Y, x_p, y_p;
+
+            do
+            {
+                x_p = x;
+                y_p = y;
+                G = f(N, t, k, Q, P0, x, y);
+                x = x_p - h * dfdWp(N, t, k, Q, P0, x, y);
+                y = y_p - h * dfdAp(N, t, k, Q, x, P0, y);
+                Y = f(N, t, k, Q, P0, x, y);
+
+                if (x + y < 0.15 || x + y > 0.9)
+                    break;
+
+                counter++;
+            }
+            while ((Math.Abs(Y - G)) > eps);
+
+            return new CalcResult(x, y);
+
+        }
+
+        public double[] calc()
+        {
+            double[] res = new double[2]; // [zola, water, price, heat, sera]
+            List<CalcResult> results = new List<CalcResult>();
+            foreach (var row in randList)
+            {
+                var str = row[4].ToString();
+                str = str.Replace(".", ",");
+                double Q = Convert.ToDouble(str);
+                str = row[3].ToString();
+                str = str.Replace(".", ",");
+                double P0 = Convert.ToDouble(str);
+                results.Add(fast_Gradient(755, 550, 0.8, Q, P0, 0.0000001));
+            }
+            var r = results.Last();
+            return new double[] { r.Ap, r.Wp };
+            //return res;
         }
 
         public void findCloseReal()
         {
 
             var rand = calc();
-            rand = new double[] {0.054, 0.27,1450};
             double min = 10000;
             string minName = "";
             foreach (var real in realList)
             {
                 double diffZola = Math.Pow(rand[0] - (double)real[1], 2);
                 double diffWater = Math.Pow(rand[1] - (double)real[2], 2);
-                double diffPrice = Math.Pow(rand[2] - (double)real[3], 2);
-                double diffHeat = Math.Pow(rand[3] - (double)real[4], 2);
-                double diffSera = Math.Pow(rand[4] - (double)real[5], 2);
-                var minn = Math.Sqrt(diffZola + diffWater + diffPrice + diffHeat + diffSera);
+                //double diffPrice = Math.Pow(rand[2] - (double)real[3], 2);
+                //double diffHeat = Math.Pow(rand[3] - (double)real[4], 2);
+                //double diffSera = Math.Pow(rand[4] - (double)real[5], 2);
+                var minn = Math.Sqrt(diffZola + diffWater);
                 if (minn < min)
                 {
                     min = minn;
